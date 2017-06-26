@@ -63,10 +63,27 @@ public:
 
   ///* Augmented state dimension
   int n_aug_;
+  
+  ///* Number of sigma points
+  int n_sigma_points_;
 
+  
+	 ///* R
+  	MatrixXd rRadar_;
+  
+  	///* 
+	MatrixXd rLaser_;
+  
+  
   ///* Sigma point spreading parameter
   double lambda_;
 
+	///* the current NIS for radar
+	double NIS_radar_;
+
+  	///* the current NIS for laser
+	double NIS_laser_;
+	
 
   /**
    * Constructor
