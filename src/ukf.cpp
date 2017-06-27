@@ -154,8 +154,7 @@ void UKF::Prediction(double delta_t_) {			// For reference:  L7.18
 		// State difference
 		VectorXd xDiff_ = xSigmaPred_.col(i) - x_;
 		// Angle normalization
-		while (xDiff_(3)> M_PI) xDiff_(3) -= 2.*M_PI;
-		while (xDiff_(3)<-M_PI) xDiff_(3) += 2.*M_PI;
+		restrictAngle(&(xDiff_(3)));
 		P_ = P_ + w_(i) * xDiff_ * xDiff_.transpose() ;
 	}
 } //End of Prediction Function
@@ -178,8 +177,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 	S.fill(0.0);
 	for (int i = 0; i < nSigmaPts_; i++) {
 		VectorXd zDiff_ = z_.col(i) - z_pred_;
-		while (zDiff_(1)> M_PI) zDiff_(1) -= 2.*M_PI;
-		while (zDiff_(1)<-M_PI) zDiff_(1) += 2.*M_PI;
+		restrictAngle(&(zDiff_(1)));
 		S = S + w_(i) * zDiff_ * zDiff_.transpose();
 	}
 	S = S + rLidar_;
@@ -189,8 +187,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 		//residual
 		VectorXd  zDiff_ = z_.col(i) - z_pred_;
 		if (meas_package.sensor_type_ == MeasurementPackage::RADAR) { // Radar
-			while (zDiff_(1)> M_PI) zDiff_(1) -= 2.*M_PI;
-			while (zDiff_(1)<-M_PI) zDiff_(1) += 2.*M_PI;
+			restrictAngle(&(zDiff_(1)));
 		}
 		
 		VectorXd xDiff_ = xSigmaPred_.col(i) - x_;					// State difference
@@ -201,14 +198,13 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 	MatrixXd K = CrossCorr * S.inverse();			//K is the Kalman gain
 	VectorXd zDiff_ = z - z_pred_;
 	if (meas_package.sensor_type_ == MeasurementPackage::RADAR) { // Radar
-		while (zDiff_(3)> M_PI) zDiff_(3) -= 2.*M_PI;
-		while (zDiff_(3)<-M_PI) zDiff_(3) += 2.*M_PI;
+		restrictAngle(&(zDiff_(3)));
 	}
 
 	x_ = x_ + K * zDiff_;							//update mean value
 	P_ = P_ - K * S * K.transpose();				//update covariance
 	NIS_laser_ = z.transpose() * S.inverse() * z;	//calc NIS
-}
+}//End of UpdateLidar Function
 
 void UKF::UpdateRadar(MeasurementPackage meas_package) {
   	int nRadar_ = 3;								//r, phi, rdot
@@ -234,8 +230,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   	S.fill(0.0);									//initializing covariance
   	for (int i = 0; i < nSigmaPts_; i++) { 
     	VectorXd zDiff_ = z_.col(i) - z_pred;		//Calculate residual
-    	while (zDiff_(1)> M_PI) zDiff_(1) -= 2.*M_PI;
-		while (zDiff_(1)<-M_PI) zDiff_(1) += 2.*M_PI;
+    	restrictAngle(&(zDiff_(1)));
     	S = S + w_(i) * zDiff_ * zDiff_.transpose();
   	}
   	
@@ -245,20 +240,25 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   	CrossCorr.fill(0.0);							//Initialize cross-corelation
   	for (int i = 0; i < nSigmaPts_; i++) { 
     	VectorXd zDiff_ = z_.col(i) - z_pred;
-    	while (zDiff_(1)> M_PI) zDiff_(1) -= 2.*M_PI; //taking this normalization out...
-		while (zDiff_(1)<-M_PI) zDiff_(1) += 2.*M_PI; //...makes the system fail
+    	restrictAngle(&(zDiff_(1)));				//This is required - taking it out makes the system fail
 		VectorXd xDiff_ = xSigmaPred_.col(i) - x_;
 		CrossCorr = CrossCorr + w_(i) * xDiff_ * zDiff_.transpose();
   	}
  	VectorXd z = meas_package.raw_measurements_;	//measured data
 	MatrixXd K = CrossCorr * S.inverse();			//K is the Kalman gain
 	VectorXd zDiff_ = z - z_pred;
-  	
-    while (zDiff_(1)> M_PI) zDiff_(1) -= 2.*M_PI;
-	while (zDiff_(1)<-M_PI) zDiff_(1) += 2.*M_PI;
+  	restrictAngle(&(zDiff_(1)));
+
   	
   	x_ = x_ + K * zDiff_;							//update mean value
   	P_ = P_ - K * S * K.transpose();				//update covariance
   	NIS_radar_ = z.transpose() * S.inverse() * z;	//calc NIS
+}//End of UpdateRadar Function
+
+
+
+void UKF::restrictAngle(double *angle) {			//restricts angle to -pi and pi.
+    while (*angle > M_PI)  *angle -= 2. * M_PI;
+    while (*angle < -M_PI) *angle += 2. * M_PI;
 }
 

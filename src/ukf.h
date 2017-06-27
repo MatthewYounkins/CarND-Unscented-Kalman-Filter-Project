@@ -112,6 +112,13 @@ public:
    	* @param meas_package The measurement at k+1
    	*/
   	void UpdateRadar(MeasurementPackage meas_package);
+	
+	/**
+   	*  Restrict (Normalize) Angle so that it is between -pi and pi.
+   	*/
+	void restrictAngle(double *angle);
+	
+	
 };
 
 #endif /* UKF_H */
