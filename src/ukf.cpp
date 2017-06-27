@@ -9,14 +9,14 @@ using std::vector;
 
 //Unscented Kalman filter
 UKF::UKF() {						// Initialize UKF
-	is_initialized_ = false;		// this will change after the system is initialized
+	is_initialized_ = false;		// This will change after the system is initialized
 	time_us_ 	= 0.0;				// System time, in microseconds
 
-	std_a_ 		= 1.0;  // Potential deviation in longitudinal acceleration in m/s^2
-	std_yawdd_ 	= 0.5;  // Potential deviation in yaw acceleration in rad/s^2
+	std_a_ 		= 1.0;  			// Potential deviation in longitudinal acceleration in m/s^2
+	std_yawdd_ 	= 0.5;  			// Potential deviation in yaw acceleration in rad/s^2
 
 	//Some example iterations of the above:
-	//     std_a_ 	std_yawdd	X		Y		VX		VY
+	//     std_a_  std_yawdd	X		Y		VX		VY
 	//Using 3.0  	1.0 	>> 	0.0732 	0.0853 	0.3573 	0.2441
 	//Using 2.0		1.0		>>	0.0700	0.0838	0.3433	0.2291
 	//Using 1.0		1.0		>>	0.0647	0.0836	0.3350	0.2193
@@ -30,17 +30,17 @@ UKF::UKF() {						// Initialize UKF
 	std_radphi_ = 0.03;				// Standard dev of angle measurement in rad
 	std_radrd_ 	= 0.3;				// Standard dev in rate of change of radius in m/s
 
-	n_x_ 		= 5; 				//number of measurements
+	n_x_ 		= 5; 				// Number of measurements
 	n_aug_ 		= n_x_ + 2;			// Number of positions in the augmented states
 	nSigmaPts_	= 2 * n_aug_ + 1;	// How many sigma points will we use?
 	lambda_ 	= 3 - n_aug_;		// Sigma Spread
 		
-	xSigmaPred_ = MatrixXd(n_x_, nSigmaPts_);	//Matrix for sigma points
-	w_ 			= VectorXd(nSigmaPts_);			//Vector for weights
-	x_ 			= VectorXd(n_x_);  				//[pos1 pos2 vel_abs yaw_angle yaw_rate] = 5 measurements in mks and radians
+	xSigmaPred_ = MatrixXd(n_x_, nSigmaPts_);	// Matrix for sigma points
+	w_ 			= VectorXd(nSigmaPts_);			// Vector for weights
+	x_ 			= VectorXd(n_x_);  				// [pos1 pos2 vel_abs yaw_angle yaw_rate] = 5 measurements in mks and radians
 	P_			= MatrixXd(n_x_, n_x_);			// Initialize the P matrix
-	rRadar_ 	= MatrixXd(3, 3);				//Covariance for Radar 
-	rLidar_ 	= MatrixXd(2, 2);				//Covariance for Lidar	
+	rRadar_ 	= MatrixXd(3, 3);				// Covariance for Radar 
+	rLidar_ 	= MatrixXd(2, 2);				// Covariance for Lidar	
     
 	// Measurement noise covariance matrices initialization
 	rRadar_	<< 	std_radr_*std_radr_,	0,							0,
@@ -66,7 +66,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 			float rho_dot = meas_package.raw_measurements_[2];
 			float p_x = rho * cos(phi); 
 			float p_y = rho * sin(phi);
-			x_ << p_x, p_y, rho_dot, 0, 0;
+			x_ << p_x, p_y, rho_dot, 0, 0;				//rho dot is not really the same thing as v, although it is in this simple case.
 		}
     	float vectorEntry = 0.5 / (lambda_ + n_aug_); 	//save some calc time
 		w_(0) = 2*lambda_*vectorEntry;				    //set weights
@@ -104,14 +104,14 @@ void UKF::Prediction(double delta_t_) {			// For reference:  L7.18
 		Xsig_aug.col(i+1+n_aug_) = x_aug - sqrt(lambda_+n_aug_) * L.col(i);
 	}
 
-	for (int i = 0; i< nSigmaPts_; i++){		//Reference:  L7.21
-		double p_x 		= Xsig_aug(0,i);
-		double p_y 		= Xsig_aug(1,i);
-		double v 		= Xsig_aug(2,i);
-		double yaw 		= Xsig_aug(3,i);
-		double yawd 	= Xsig_aug(4,i);
-		double nu_a 	= Xsig_aug(5,i);
-		double nu_yawdd = Xsig_aug(6,i);
+	for (int i = 0; i< nSigmaPts_; i++){			//Reference:  L7.21
+		const double p_x 		= Xsig_aug(0,i);	//Position, X direction
+		const double p_y 		= Xsig_aug(1,i);	//Position, Y direction
+		const double v 			= Xsig_aug(2,i);	//Velocity
+		const double yaw 		= Xsig_aug(3,i);	//Yaw Angle
+		const double yawd 		= Xsig_aug(4,i);	
+		const double nu_a 		= Xsig_aug(5,i);
+		const double nu_yawdd 	= Xsig_aug(6,i);
 		
 		// Predicted state values
 		double px_p, py_p;
@@ -132,7 +132,7 @@ void UKF::Prediction(double delta_t_) {			// For reference:  L7.18
 		//add noise
 		px_p 	= px_p + 0.5  * nu_a * delta_t_ * delta_t_ * cos(yaw);
 		py_p 	= py_p + 0.5  * nu_a * delta_t_ * delta_t_ * sin(yaw);
-		v_p  	=  v_p + nu_a * delta_t_;
+		v_p  	= v_p + nu_a * delta_t_;
 		yaw_p 	= yaw_p + 0.5 * nu_yawdd*delta_t_*delta_t_;
 		yawd_p 	= yawd_p + nu_yawdd*delta_t_;
 
@@ -164,7 +164,8 @@ void UKF::Prediction(double delta_t_) {			// For reference:  L7.18
  * @param {MeasurementPackage} meas_package
  */
 void UKF::UpdateLidar(MeasurementPackage meas_package) {
-	//no reason to use any nonlinear techniques here!  Use regular kalman filter equations
+	//Could use regular Kalman filter equations for the linear model.  Instead this is UKF.
+	//Perhaps I could speed things up by using the regular Kalman filer?
 	int nLidar_ = 2; 
 	MatrixXd z_ = xSigmaPred_.block(0, 0, nLidar_, nSigmaPts_);
 	VectorXd z_pred_ = VectorXd(nLidar_);
@@ -221,7 +222,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     	double v2 	= sin(yaw)*v;
     	
     	z_(0,i) = sqrt(p_x*p_x + p_y*p_y);			//r
-    	z_(1,i) = atan2(p_y,p_x);                   //phi
+    	z_(1,i) = atan2(p_y,p_x);                   //phi.  Should check for p_x and p_y = 0; atan2(0,0) is undefined.
     	z_(2,i) = (p_x*v1 + p_y*v2 ) / z_(0,i);   	//r_dot
   	}
 
@@ -248,7 +249,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 	MatrixXd K = CrossCorr * S.inverse();			//K is the Kalman gain
 	VectorXd zDiff_ = z - z_pred;
   	restrictAngle(&(zDiff_(1)));
-
   	
   	x_ = x_ + K * zDiff_;							//update mean value
   	P_ = P_ - K * S * K.transpose();				//update covariance
